@@ -473,7 +473,7 @@ describe("ToolExecutionComponent live preview spinners", () => {
 					markActivityStart: () => {},
 					markActivityEnd: () => {},
 				},
-				ui: { requestRender: () => {} },
+				ui: { requestRender: () => {}, noteTranscriptReplaced: () => {} },
 				chatContainer,
 				resetObserverRegistry: () => {},
 				eventController: { takeDisplaceableComponents: () => [], resetTranscriptAnchors: () => {} },

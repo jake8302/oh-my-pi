@@ -210,6 +210,8 @@ export function createInteractiveModeContext(overrides: ContextOverrides = {}): 
 		requestRender: vi.fn(),
 		requestComponentRender: vi.fn(),
 		setFocus: vi.fn(),
+		setSessionId: vi.fn(),
+		noteTranscriptReplaced: vi.fn(),
 		terminal: { setProgress: vi.fn() },
 		imageBudget: undefined,
 		overlayStack: [],

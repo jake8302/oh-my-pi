@@ -65,7 +65,7 @@ function makeRenderCtx(transcript: SessionContext): { ctx: InteractiveModeContex
 		statusLine: { invalidate: vi.fn() },
 		updateEditorBorderColor: vi.fn(),
 		updateEditorTopBorder: vi.fn(),
-		ui: { requestRender: vi.fn(), imageBudget: undefined },
+		ui: { requestRender: vi.fn(), noteTranscriptReplaced: vi.fn(), imageBudget: undefined },
 		resetTranscript: () => chatContainer.clear(),
 		settings: Settings.isolated(),
 		toolOutputExpanded: false,
