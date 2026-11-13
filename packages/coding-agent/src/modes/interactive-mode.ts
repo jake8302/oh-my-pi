@@ -2694,8 +2694,8 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.#eventBusUnsubscribers.push(startMacOSAppearanceReprobeFallback(this.ui.terminal));
 		}
 
-		// Named before the UI starts so a TSP terminal hears the session ahead of the first surface.
-		this.ui.setSessionId(this.sessionManager.getSessionId());
+		// The session's transcript replaces the startup screen.
+		this.noteTranscriptReplaced();
 
 		// A prepaint Composer may already own raw mode and the render loop.
 		if (!this.#ownsStartedUi) {
@@ -2753,9 +2753,10 @@ export class InteractiveMode implements InteractiveModeContext {
 				setSessionTerminalTitle(this.sessionManager.getSessionName(), this.sessionManager.getCwd());
 				this.#handleSessionAccentInputsChanged();
 			}),
-			// Fork and branch adopt a new session file without retitling.
+			// Fork and branch adopt a new session file without retitling. The TSP
+			// session record changes where the transcript is replaced, not here:
+			// the old chat stays visible until the switch completes.
 			this.session.registerSessionChangeCallback(() => {
-				this.ui.setSessionId(this.sessionManager.getSessionId());
 				reportTernSession();
 				void this.#syncSessionPinned();
 			}),
@@ -4977,7 +4978,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				}
 			}
 		}
-		this.ui.noteTranscriptReplaced();
+		this.noteTranscriptReplaced();
 		this.chatContainer.clear();
 		// Live display collapses to the compacted transcript tail unless the
 		// user opted into the full inline history; export/resume callers choose
@@ -8765,11 +8766,15 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	resetTranscript(): void {
-		this.ui.noteTranscriptReplaced();
+		this.noteTranscriptReplaced();
 		this.transcriptMessageComponents = new WeakMap<AgentMessage, Component>();
 		this.chatContainer.dispose();
 		this.chatContainer.clear();
 		this.#commandController.clearCommandReport();
+	}
+
+	noteTranscriptReplaced(): void {
+		this.ui.noteTranscriptReplaced(this.sessionManager.getSessionId());
 	}
 
 	showStatus(message: string, options?: ShowStatusOptions): void {

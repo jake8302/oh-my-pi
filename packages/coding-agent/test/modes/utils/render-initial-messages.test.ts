@@ -99,7 +99,8 @@ function makeCtx(): RenderInitialMessagesTestContext {
 		},
 		renderSessionContextIncrementally: renderSessionContextSpy,
 		showStatus: vi.fn(),
-		ui: { requestRender: vi.fn(), noteTranscriptReplaced: vi.fn() },
+		ui: { requestRender: vi.fn() },
+		noteTranscriptReplaced: vi.fn(),
 		resetTranscript: () => ctx.chatContainer.disposeChildren(),
 	} as unknown as InteractiveModeContext;
 
@@ -169,12 +170,8 @@ function makeRenderCtx(
 		statusLine: { invalidate: vi.fn() },
 		updateEditorBorderColor: vi.fn(),
 		updateEditorTopBorder: vi.fn(),
-		ui: {
-			requestRender: vi.fn(),
-			requestComponentRender: vi.fn(),
-			noteTranscriptReplaced: vi.fn(),
-			imageBudget: undefined,
-		},
+		ui: { requestRender: vi.fn(), requestComponentRender: vi.fn(), imageBudget: undefined },
+		noteTranscriptReplaced: vi.fn(),
 		resetTranscript: () => {
 			ctx.transcriptMessageComponents = new WeakMap<AgentMessage, Component>();
 			ctx.chatContainer.disposeChildren();

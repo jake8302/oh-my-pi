@@ -45,7 +45,7 @@ describe("native session record", () => {
 	it("names the session ahead of the first surface for a terminal whose hello lists `session`", async () => {
 		harness = await TspHarness.start(tui => {
 			tui.addChild(new Block(md("hello")));
-			tui.setSessionId("s1");
+			tui.noteTranscriptReplaced("s1");
 		}, WITH_SESSION);
 		const h = harness;
 		expect(sent(h).slice(0, 2)).toEqual([
@@ -59,46 +59,45 @@ describe("native session record", () => {
 		const block = new Block(md("one"));
 		harness = await TspHarness.start(tui => {
 			tui.addChild(block);
-			tui.setSessionId("s1");
+			tui.noteTranscriptReplaced("s1");
 		});
 		const h = harness;
-		h.tui.noteTranscriptReplaced();
+		h.tui.noteTranscriptReplaced("s1");
 		block.current = md("two");
 		await h.render();
-		h.tui.setSessionId("s2");
+		h.tui.noteTranscriptReplaced("s2");
 		await h.render();
 		expect(h.frames.length).toBeGreaterThan(1);
 		expect(h.terminal.log.filter(message => message.verb === "n")).toEqual([]);
 	});
 
-	it("restarts rev at 0 for a new session and raises it when a shown transcript is replaced", async () => {
+	it("names a new session at rev 0 at the replacement and raises rev when a shown transcript is replaced", async () => {
 		const block = new Block(md("one"));
 		harness = await TspHarness.start(tui => {
 			tui.addChild(block);
-			tui.setSessionId("s1");
+			tui.noteTranscriptReplaced("s1");
 		}, WITH_SESSION);
 		const h = harness;
 
 		// The first frame showed s1's transcript: replacing it raises rev before the new frame.
 		let from = h.terminal.log.length;
-		h.tui.noteTranscriptReplaced();
+		h.tui.noteTranscriptReplaced("s1");
 		block.current = md("reset");
 		await h.render();
 		expect(verbs(h, from)).toEqual(["n", "f"]);
 		expect(sent(h, from)[0]).toEqual(record("s1", 1));
 
-		// A switch names the new session; its transcript replaces the old one before any frame showed it.
+		// Another session's transcript: its record goes out at rev 0 before its first frame.
 		from = h.terminal.log.length;
-		h.tui.setSessionId("s2");
-		h.tui.noteTranscriptReplaced();
+		h.tui.noteTranscriptReplaced("s2");
 		block.current = md("other session");
 		await h.render();
 		expect(sent(h, from)).toEqual([record("s2", 0), expect.objectContaining({ verb: "f" })]);
 
-		// A frame of s2 went out, so the next replacement counts.
+		// A frame of s2 went out, so the next replacement counts once; a second one with no frame between does not.
 		from = h.terminal.log.length;
-		h.tui.noteTranscriptReplaced();
-		h.tui.noteTranscriptReplaced();
+		h.tui.noteTranscriptReplaced("s2");
+		h.tui.noteTranscriptReplaced("s2");
 		expect(sent(h, from)).toEqual([record("s2", 1)]);
 		expect(h.errors).toEqual([]);
 	});
@@ -106,10 +105,10 @@ describe("native session record", () => {
 	it("sends the record again ahead of the adopt after a stop/start cycle's new hello", async () => {
 		harness = await TspHarness.start(tui => {
 			tui.addChild(new Block(md("kept")));
-			tui.setSessionId("s1");
+			tui.noteTranscriptReplaced("s1");
 		}, WITH_SESSION);
 		const h = harness;
-		h.tui.noteTranscriptReplaced();
+		h.tui.noteTranscriptReplaced("s1");
 		await h.render();
 		h.tui.stop();
 		h.flush();
@@ -126,7 +125,7 @@ describe("native session record", () => {
 	it("sends the record ahead of the fresh surface that replaces one the terminal lost", async () => {
 		harness = await TspHarness.start(tui => {
 			tui.addChild(new Block(md("kept")));
-			tui.setSessionId("s1");
+			tui.noteTranscriptReplaced("s1");
 		}, WITH_SESSION);
 		const h = harness;
 		const lost = h.terminal.surface!;
@@ -143,7 +142,7 @@ describe("native session record", () => {
 		harness = await TspHarness.start(
 			tui => {
 				tui.addChild(new Block(md("hello")));
-				tui.setSessionId("s1");
+				tui.noteTranscriptReplaced("s1");
 			},
 			{ ...WITH_SESSION, expected: true, manualProbe: true },
 		);

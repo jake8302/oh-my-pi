@@ -1768,22 +1768,17 @@ export class TUI extends Container {
 	}
 
 	/**
-	 * Name the session the transcript belongs to. A TSP terminal whose `hello`
-	 * lists `session` gets the record (`{ t: "session", id, rev }`) now and on
-	 * each change; a new id restarts `rev` at 0.
+	 * The transcript of session `sessionId` replaces the visible one: the first
+	 * transcript, another session's, or a reset, compacted, rebuilt or rewound
+	 * one. A TSP terminal whose `hello` lists `session` gets the record
+	 * (`{ t: "session", id, rev }`) at once, so it comes before every frame
+	 * that shows the new transcript and after every frame that showed the old
+	 * one. Another id starts at `rev` 0; the same id raises `rev` once a frame
+	 * showed the old transcript. Call it in the same tick as the replacement,
+	 * never ahead of it.
 	 */
-	setSessionId(id: string | undefined): void {
-		if (this.#nativeSession.setId(id)) this.#native?.sessionChanged();
-	}
-
-	/**
-	 * The transcript was replaced in place under the same session (reset,
-	 * compacted, rebuilt, another branch or view). Once a frame showed the old
-	 * transcript, `rev` goes up and the terminal hears of it before the frames
-	 * that show the new one. Call it before the replacement renders.
-	 */
-	noteTranscriptReplaced(): void {
-		if (this.#nativeSession.replaced()) this.#native?.sessionChanged();
+	noteTranscriptReplaced(sessionId: string): void {
+		if (this.#nativeSession.replace(sessionId)) this.#native?.sessionChanged();
 	}
 
 	#onTspHello(hello: TspHello | null): void {

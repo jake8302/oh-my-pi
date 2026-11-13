@@ -1065,6 +1065,8 @@ export class UiHelpers {
 		for (const remaining of context.messages) {
 			if (remaining === message) return false;
 		}
+		// The rewind deletes blocks a TSP viewer may hold: it gets the new rev before the deletion frame.
+		this.ctx.noteTranscriptReplaced();
 		const dropped = chat.children.slice(index);
 		for (let i = dropped.length - 1; i >= 0; i--) {
 			const child = dropped[i]!;
@@ -1239,7 +1241,7 @@ export class UiHelpers {
 				visibleChatContainer.clear();
 			} else {
 				// The replay replaces the transcript a TSP viewer may hold.
-				this.ctx.ui.noteTranscriptReplaced();
+				this.ctx.noteTranscriptReplaced();
 				visibleChatContainer.disposeChildren();
 			}
 			for (const child of replayedChatChildren) {

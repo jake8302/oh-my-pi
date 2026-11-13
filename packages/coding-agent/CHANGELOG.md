@@ -4,7 +4,7 @@
 
 ### Added
 
-- TSP terminals and relays that list the `session` feature now get the session id and a revision from omp: a new id on `/new`, `/resume`, `/fork` and other session switches, and a higher revision when the transcript is replaced in the same session (`/clear`, compaction, `/tree`)
+- TSP terminals and relays that list the `session` feature now get the session id and a revision from omp when the visible transcript is replaced: a new id when `/new`, `/resume`, `/fork` and other session switches show the new session, and a higher revision when the transcript is replaced in the same session (`/clear`, compaction, `/tree`, rewind)
 
 ## [18.20.0] - 2026-11-12
 

@@ -4,7 +4,7 @@
 
 ### Added
 
-- `TUI.setSessionId()` and `TUI.noteTranscriptReplaced()`: a TSP terminal whose `hello` lists `session` gets a session record (`n`) with the session id and a `rev` that goes up when the transcript is replaced in place, so a viewer that kept a transcript knows if the next frames continue it
+- `TUI.noteTranscriptReplaced(sessionId)`: a TSP terminal whose `hello` lists `session` gets a session record (`n`) with the id of the session the visible transcript belongs to and a `rev` that goes up when the transcript is replaced in place. The record goes out at the replacement, so a viewer that kept a transcript knows if the next frames continue it
 
 ## [18.20.0] - 2026-11-12
 

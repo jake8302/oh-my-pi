@@ -457,6 +457,12 @@ export interface InteractiveModeContext {
 	 * leak.
 	 */
 	resetTranscript(): void;
+	/**
+	 * The visible transcript is about to be replaced (another session, a reset,
+	 * replay or rewind): give a TSP viewer the current session id and a new
+	 * `rev`. Call it in the same tick as the replacement, never ahead of it.
+	 */
+	noteTranscriptReplaced(): void;
 	showStatus(message: string, options?: ShowStatusOptions): void;
 	/** Show the ctrl+p role chip track above the editor, `activeIndex` filled. */
 	showModelCycleTrack(segments: readonly TrackSegment[], activeIndex: number): void;

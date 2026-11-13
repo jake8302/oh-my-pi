@@ -1467,6 +1467,8 @@ export class CommandController {
 			this.ctx.showError("Fork failed (session not persisted or cancelled)");
 			return;
 		}
+		// The fork keeps the visible chat, but the frames from here belong to the new session.
+		this.ctx.noteTranscriptReplaced();
 
 		this.ctx.statusLine.invalidate();
 		this.ctx.ui.requestRender();
