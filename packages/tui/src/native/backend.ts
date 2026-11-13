@@ -657,7 +657,6 @@ export class NativeBackend {
 			this.#recent.push(frame);
 			if (this.#recent.length > RECENT_FRAMES) this.#recent.splice(0, this.#recent.length - RECENT_FRAMES);
 		}
-		if (surface === this.#inline) this.#session?.shown();
 		this.#write("f", frame);
 	}
 

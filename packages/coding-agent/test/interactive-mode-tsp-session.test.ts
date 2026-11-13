@@ -89,7 +89,7 @@ describe("InteractiveMode TSP session record", () => {
 		return { mode, session, sessionManager, terminal, received, records, flush };
 	}
 
-	it("names the session on start, raises rev on /clear and restarts it for the session /new starts", async () => {
+	it("raises rev at every transcript replacement in the process: /clear, /new and a /resume back to the first session", async () => {
 		const { mode, sessionManager, terminal, records, flush } = await start();
 		const first = sessionManager.getSessionId();
 		expect(records()).toEqual([{ t: "session", id: first, rev: 0 } satisfies TspSession]);
@@ -98,12 +98,27 @@ describe("InteractiveMode TSP session record", () => {
 		flush();
 		expect(sessionManager.getSessionId()).toBe(first);
 		expect(records().at(-1)).toEqual({ t: "session", id: first, rev: 1 });
+		sessionManager.appendMessage(userMsg("FIRST-SESSION-MARKER"));
+		await sessionManager.ensureOnDisk();
+		const firstFile = sessionManager.getSessionFile();
+		if (!firstFile) throw new Error("expected the first session on disk");
 
+		// A new session takes the next rev, not 0.
 		await mode.handleClearCommand();
 		flush();
 		const second = sessionManager.getSessionId();
 		expect(second).not.toBe(first);
-		expect(records().at(-1)).toEqual({ t: "session", id: second, rev: 0 });
+		expect(records().at(-1)).toEqual({ t: "session", id: second, rev: 2 });
+
+		// The first session comes back with a rev it never had, so a viewer's kept copy of it is not current.
+		await mode.handleResumeSession(firstFile);
+		flush();
+		expect(sessionManager.getSessionId()).toBe(first);
+		const back = records().at(-1) as TspSession;
+		expect(back.id).toBe(first);
+		expect(back.rev).toBeGreaterThan(2);
+		const all = records() as TspSession[];
+		expect(all.map(record => record.rev)).toEqual(all.map((_, index) => index));
 		expect(terminal.errors).toEqual([]);
 	});
 
@@ -140,7 +155,8 @@ describe("InteractiveMode TSP session record", () => {
 		await cleared;
 		flush();
 		const named = received.findIndex(entry => entry.verb === "n" && (entry.body as TspSession).id === second);
-		expect(received[named]?.body).toEqual({ t: "session", id: second, rev: 0 });
+		const last = received.slice(0, named).findLast(entry => entry.verb === "n")?.body as TspSession;
+		expect(received[named]?.body).toEqual({ t: "session", id: second, rev: last.rev + 1 });
 		const before = received.slice(0, named).filter(entry => entry.verb === "f");
 		const after = received.slice(named + 1).filter(entry => entry.verb === "f");
 		expect(before.some(entry => entry.shows.includes("New session started"))).toBe(false);

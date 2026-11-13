@@ -1773,12 +1773,14 @@ export class TUI extends Container {
 	 * one. A TSP terminal whose `hello` lists `session` gets the record
 	 * (`{ t: "session", id, rev }`) at once, so it comes before every frame
 	 * that shows the new transcript and after every frame that showed the old
-	 * one. Another id starts at `rev` 0; the same id raises `rev` once a frame
-	 * showed the old transcript. Call it in the same tick as the replacement,
-	 * never ahead of it.
+	 * one. `rev` is one counter for the process: 0 for the first transcript,
+	 * +1 at each replacement, for the same id or another one, so a pair of
+	 * `id` and `rev` never repeats. Call it in the same tick as the
+	 * replacement, never ahead of it.
 	 */
 	noteTranscriptReplaced(sessionId: string): void {
-		if (this.#nativeSession.replace(sessionId)) this.#native?.sessionChanged();
+		this.#nativeSession.replace(sessionId);
+		this.#native?.sessionChanged();
 	}
 
 	#onTspHello(hello: TspHello | null): void {

@@ -71,34 +71,38 @@ describe("native session record", () => {
 		expect(h.terminal.log.filter(message => message.verb === "n")).toEqual([]);
 	});
 
-	it("names a new session at rev 0 at the replacement and raises rev when a shown transcript is replaced", async () => {
+	it("raises rev by 1 at every replacement, for the same id or another one, so a pair never repeats", async () => {
 		const block = new Block(md("one"));
 		harness = await TspHarness.start(tui => {
 			tui.addChild(block);
 			tui.noteTranscriptReplaced("s1");
 		}, WITH_SESSION);
 		const h = harness;
+		expect(sent(h).filter(message => message.verb === "n")).toEqual([record("s1", 0)]);
 
-		// The first frame showed s1's transcript: replacing it raises rev before the new frame.
+		// The same session's transcript is replaced: the record goes out before the new frame.
 		let from = h.terminal.log.length;
 		h.tui.noteTranscriptReplaced("s1");
 		block.current = md("reset");
 		await h.render();
-		expect(verbs(h, from)).toEqual(["n", "f"]);
-		expect(sent(h, from)[0]).toEqual(record("s1", 1));
+		expect(sent(h, from)).toEqual([record("s1", 1), expect.objectContaining({ verb: "f" })]);
 
-		// Another session's transcript: its record goes out at rev 0 before its first frame.
+		// Another session's transcript takes the next rev, not 0.
 		from = h.terminal.log.length;
 		h.tui.noteTranscriptReplaced("s2");
 		block.current = md("other session");
 		await h.render();
-		expect(sent(h, from)).toEqual([record("s2", 0), expect.objectContaining({ verb: "f" })]);
+		expect(sent(h, from)).toEqual([record("s2", 2), expect.objectContaining({ verb: "f" })]);
 
-		// A frame of s2 went out, so the next replacement counts once; a second one with no frame between does not.
+		// s1 comes back with a rev it never had; two replacements with no frame between still count twice.
 		from = h.terminal.log.length;
-		h.tui.noteTranscriptReplaced("s2");
-		h.tui.noteTranscriptReplaced("s2");
-		expect(sent(h, from)).toEqual([record("s2", 1)]);
+		h.tui.noteTranscriptReplaced("s1");
+		h.tui.noteTranscriptReplaced("s1");
+		expect(sent(h, from)).toEqual([record("s1", 3), record("s1", 4)]);
+		const pairs = sent(h)
+			.filter(message => message.verb === "n")
+			.map(message => JSON.stringify(message.body));
+		expect(new Set(pairs).size).toBe(pairs.length);
 		expect(h.errors).toEqual([]);
 	});
 

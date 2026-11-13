@@ -1122,22 +1122,24 @@ export interface TspClose {
 }
 
 /**
- * Verb `n`: the session the program's transcript belongs to. Sent only to a
+ * Verb `n`: the session the visible transcript belongs to. Sent only to a
  * terminal whose `hello.features` lists `"session"`, once the program has
- * named its session (a startup surface can open first): ahead of each `o`
- * that opens or adopts the session's inline surface, after each new `hello`,
- * and on each change. A viewer that kept a transcript compares `id` and `rev`
- * with the ones it kept it under: when both are equal, the frames that follow
- * continue that transcript.
+ * named its transcript (a startup surface can open first): at each
+ * transcript replacement, before the first frame that shows the new
+ * transcript; and again, unchanged, ahead of each `o` that opens or adopts
+ * the session's inline surface and after each new `hello`. A viewer that
+ * kept a transcript compares `id` and `rev` with the ones it kept it under:
+ * when both are equal, the frames that follow continue that transcript.
  */
 export interface TspSession {
 	t: "session";
-	/** Opaque session id: stable for one session, never a path. */
+	/** Opaque id of the session the transcript belongs to; never a path. */
 	id: string;
 	/**
-	 * Starts at 0 for each `id`; +1 each time the program replaces the
-	 * transcript in place (a context reset, a compaction, a move in the session
-	 * tree) after it sent frames that showed the transcript.
+	 * One counter for the program's process: 0 for the first transcript, +1 at
+	 * each transcript replacement (another session, a context reset, a
+	 * compaction, a move in the session tree, a rewind). The pair of `id` and
+	 * `rev` never repeats in one process, also when a session comes back.
 	 */
 	rev: number;
 }
