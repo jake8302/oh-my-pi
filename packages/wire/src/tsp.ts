@@ -8,7 +8,8 @@
  *     ESC _ tsp ; <verb> [; <key>=<value>]* ; <body> ESC \
  *
  * `body` is UTF-8 JSON (base64 for blob chunks). Program → terminal verbs:
- * `q` query, `o` open, `f` frame, `b` blob, `t` palette, `x` close. Terminal →
+ * `q` query, `o` open, `f` frame, `b` blob, `t` palette, `x` close, `n`
+ * session record (only to a terminal whose `hello` lists `session`). Terminal →
  * program: `r` reply, `e` event (on the pty's input side).
  *
  * The normative spec is the Tern SDK's Surface Protocol and Elements reference
@@ -30,7 +31,7 @@ export const TSP_DEFAULT_APC_LIMIT = 65_536;
 export const TSP_DEFAULT_CREDITS = 2;
 
 /** One-letter message verb. */
-export type TspVerb = "q" | "o" | "f" | "b" | "x" | "r" | "e";
+export type TspVerb = "q" | "o" | "f" | "b" | "x" | "n" | "r" | "e";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Vocabulary
@@ -1118,6 +1119,27 @@ export interface TspClose {
 	id: string;
 	/** Keep `main` in scrollback (true) or remove the surface (false). */
 	keep: boolean;
+}
+
+/**
+ * Verb `n`: the session the program's transcript belongs to. Sent only to a
+ * terminal whose `hello.features` lists `"session"`, once the program has
+ * named its session (a startup surface can open first): ahead of each `o`
+ * that opens or adopts the session's inline surface, after each new `hello`,
+ * and on each change. A viewer that kept a transcript compares `id` and `rev`
+ * with the ones it kept it under: when both are equal, the frames that follow
+ * continue that transcript.
+ */
+export interface TspSession {
+	t: "session";
+	/** Opaque session id: stable for one session, never a path. */
+	id: string;
+	/**
+	 * Starts at 0 for each `id`; +1 each time the program replaces the
+	 * transcript in place (a context reset, a compaction, a move in the session
+	 * tree) after it sent frames that showed the transcript.
+	 */
+	rev: number;
 }
 
 /** Verb `q`. */

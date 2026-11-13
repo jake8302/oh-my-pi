@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `TspSession` and the `n` verb: the session record (`{ t: "session", id, rev }`) a program sends to a terminal whose `hello.features` lists `session`
+
 ## [18.18.6] - 2026-11-09
 
 ### Added

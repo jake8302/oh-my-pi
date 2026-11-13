@@ -52,6 +52,7 @@ import type { DescribeContext, NativeChild, NativeNode, NativeSurface, NativeUiE
 import { NARROW_SHEET_COLS } from "./overlay";
 import { resetQuietMotion } from "./quiet";
 import { nativeComponentId, Reconciler } from "./reconcile";
+import type { NativeSession } from "./session";
 import { setNativeButtons, setNativePacing, setNativeRendering } from "./state";
 
 /** Share of the viewport's rows a centered sheet's content must reach to fill a narrow pane. */
@@ -104,6 +105,8 @@ export interface NativeBackendOptions {
 	readonly stats?: boolean;
 	/** Clock and timers (stall wake-up); defaults to `Date.now` and unref'd `setTimeout`. */
 	readonly scheduler?: RenderScheduler;
+	/** The session record sent to a terminal whose `hello` lists `session`. */
+	readonly session?: NativeSession;
 }
 
 /** Real clock and timers that never keep the process alive on their own. */
@@ -307,6 +310,7 @@ export class NativeBackend {
 	#mirror: boolean;
 	#recordPath: string | undefined;
 	#stats: boolean;
+	#session: NativeSession | undefined;
 	#scheduler: RenderScheduler;
 	/** Wakes a render when the oldest unacked frame of a credit-blocked surface turns stalled. */
 	#stallTimer: RenderTimer | undefined;
@@ -337,6 +341,7 @@ export class NativeBackend {
 		this.#recordPath = options.recordPath ?? (Bun.env.PI_TUI_TSP_RECORD || undefined);
 		this.#stats = options.stats ?? Bun.env.PI_TUI_NATIVE_STATS === "1";
 		this.#scheduler = options.scheduler ?? DEFAULT_SCHEDULER;
+		this.#session = options.session;
 		this.#inline = this.#newSurface("inline");
 	}
 
@@ -366,6 +371,7 @@ export class NativeBackend {
 		this.#live = true;
 		this.#useNerdSymbols(true);
 		this.#watchMotion();
+		this.#sendSession();
 		this.#open(this.#inline);
 		setNativeRendering(true);
 		this.render();
@@ -440,6 +446,7 @@ export class NativeBackend {
 		surface.stallResets = 0;
 		surface.focus = null;
 		surface.dirty = false;
+		this.#sendSession();
 		this.#write("o", { id: surface.id, mode: "inline", title: "omp", role: SESSION_ROLE, adopt: true });
 		// After the `o`, as in `start()`.
 		setNativeRendering(true);
@@ -469,7 +476,19 @@ export class NativeBackend {
 			!this.#cx.sameVocabulary(before)
 		)
 			this.#host.invalidate();
+		this.#sendSession();
 		this.#host.requestRender();
+	}
+
+	/** The session record changed: tell the terminal while a surface is live. */
+	sessionChanged(): void {
+		if (this.#live) this.#sendSession();
+	}
+
+	/** Send the session record, when there is one and the terminal's `hello` lists `session`. */
+	#sendSession(): void {
+		const record = this.#session?.record;
+		if (record && this.#cx.feature("session")) this.#write("n", record);
 	}
 
 	/** SIGWINCH: refresh the width used for `rows` fallback until the terminal reports one. */
@@ -638,6 +657,7 @@ export class NativeBackend {
 			this.#recent.push(frame);
 			if (this.#recent.length > RECENT_FRAMES) this.#recent.splice(0, this.#recent.length - RECENT_FRAMES);
 		}
+		if (surface === this.#inline) this.#session?.shown();
 		this.#write("f", frame);
 	}
 
@@ -752,7 +772,7 @@ export class NativeBackend {
 		}
 	}
 
-	#write(verb: "o" | "f" | "x" | "q", body: unknown): void {
+	#write(verb: "o" | "f" | "x" | "q" | "n", body: unknown): void {
 		this.#record("out", verb, undefined, body);
 		this.#host.terminal.write(encodeTspJson(verb, body, undefined, this.#limit));
 	}
@@ -827,7 +847,10 @@ export class NativeBackend {
 					// Adopt found nothing (evicted, or another pane): start over.
 					this.#resetBlobs();
 					this.#inline = this.#newSurface("inline");
-					if (this.#live) this.#open(this.#inline);
+					if (this.#live) {
+						this.#sendSession();
+						this.#open(this.#inline);
+					}
 					this.#host.requestRender();
 					return;
 				}

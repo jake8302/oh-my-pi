@@ -2694,6 +2694,9 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.#eventBusUnsubscribers.push(startMacOSAppearanceReprobeFallback(this.ui.terminal));
 		}
 
+		// Named before the UI starts so a TSP terminal hears the session ahead of the first surface.
+		this.ui.setSessionId(this.sessionManager.getSessionId());
+
 		// A prepaint Composer may already own raw mode and the render loop.
 		if (!this.#ownsStartedUi) {
 			this.composer.start({
@@ -2752,6 +2755,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			}),
 			// Fork and branch adopt a new session file without retitling.
 			this.session.registerSessionChangeCallback(() => {
+				this.ui.setSessionId(this.sessionManager.getSessionId());
 				reportTernSession();
 				void this.#syncSessionPinned();
 			}),
@@ -4973,6 +4977,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				}
 			}
 		}
+		this.ui.noteTranscriptReplaced();
 		this.chatContainer.clear();
 		// Live display collapses to the compacted transcript tail unless the
 		// user opted into the full inline history; export/resume callers choose
@@ -8760,6 +8765,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	resetTranscript(): void {
+		this.ui.noteTranscriptReplaced();
 		this.transcriptMessageComponents = new WeakMap<AgentMessage, Component>();
 		this.chatContainer.dispose();
 		this.chatContainer.clear();

@@ -28,6 +28,7 @@ import { assumedTspHello, NativeBackend, type NativeHost } from "./native/backen
 import { col } from "./native/describe";
 import { TSP_PREFIX, type TspHello } from "./native/encode";
 import type { DescribeContext, NativeNode, NativeScreen, NativeSurfaceProvider, NativeUiEvent } from "./native/node";
+import { NativeSession } from "./native/session";
 import { cropSixelTop } from "./sixel";
 import { STDOUT_BACKLOG_CLEAR_BYTES, setAltScreenActive, type Terminal } from "./terminal";
 import { classifyTerminalMultiplexerModule, terminalMultiplexerSessions } from "./terminal-multiplexer";
@@ -1130,6 +1131,8 @@ export class TUI extends Container {
 	// stop/start so a restart adopts the surface.
 	#native: NativeBackend | undefined;
 	#nativeLive = false;
+	// The session record a terminal with the `session` feature hears; outlives each backend.
+	readonly #nativeSession = new NativeSession();
 	// Holds the first paint while the `hello` probe is outstanding, so a TSP
 	// terminal never sees a row paint it would have to erase.
 	#nativeHoldTimer: RenderTimer | undefined;
@@ -1764,6 +1767,25 @@ export class TUI extends Container {
 		return this.#native?.fallbackCount ?? 0;
 	}
 
+	/**
+	 * Name the session the transcript belongs to. A TSP terminal whose `hello`
+	 * lists `session` gets the record (`{ t: "session", id, rev }`) now and on
+	 * each change; a new id restarts `rev` at 0.
+	 */
+	setSessionId(id: string | undefined): void {
+		if (this.#nativeSession.setId(id)) this.#native?.sessionChanged();
+	}
+
+	/**
+	 * The transcript was replaced in place under the same session (reset,
+	 * compacted, rebuilt, another branch or view). Once a frame showed the old
+	 * transcript, `rev` goes up and the terminal hears of it before the frames
+	 * that show the new one. Call it before the replacement renders.
+	 */
+	noteTranscriptReplaced(): void {
+		if (this.#nativeSession.replaced()) this.#native?.sessionChanged();
+	}
+
 	#onTspHello(hello: TspHello | null): void {
 		const held = this.#nativeHoldTimer !== undefined;
 		this.#nativeHoldTimer?.cancel();
@@ -1797,6 +1819,7 @@ export class TUI extends Container {
 		this.#native = new NativeBackend(this.#nativeHost(), hello, {
 			mirror: this.#debugServer !== undefined,
 			scheduler: this.#renderScheduler === DEFAULT_RENDER_SCHEDULER ? undefined : this.#renderScheduler,
+			session: this.#nativeSession,
 		});
 		this.#native.start();
 	}

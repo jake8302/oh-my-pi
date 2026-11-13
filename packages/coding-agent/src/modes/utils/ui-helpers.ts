@@ -1238,6 +1238,8 @@ export class UiHelpers {
 			if (preservedChatChildren) {
 				visibleChatContainer.clear();
 			} else {
+				// The replay replaces the transcript a TSP viewer may hold.
+				this.ctx.ui.noteTranscriptReplaced();
 				visibleChatContainer.disposeChildren();
 			}
 			for (const child of replayedChatChildren) {
